@@ -1,0 +1,60 @@
+.wrapper {
+  background: url("../../img/bg-mob-flow.jpg") center center no-repeat;
+  background-size: cover;
+
+  @media (min-width: 1000px) {
+    background: #fff;
+  }
+}
+
+.heading {
+  margin: 10vw auto 1vw;
+
+  @media (min-width: 1000px) {
+    margin: 4vw auto 0;
+  }
+}
+
+.subHeading {
+  margin-bottom: 15vw;
+
+  @media (min-width: 1000px) {
+    margin-bottom: 5.7vw;
+  }
+}
+
+.button {
+  margin-bottom: 4.8vw;
+
+  @media (min-width: 1000px) {
+    margin-bottom: 1.2vw;
+  }
+}
+
+.helper {
+  font-size: 3.3vw;
+  font-weight: 400;
+  color: #a1a4b2;
+  display: flex;
+  align-items: center;
+  margin: 5vw 0;
+
+  @media (min-width: 1000px) {
+    font-size: 0.6vw;
+    margin: 1vw 0;
+  }
+
+  &Link {
+    display: inline-block;
+    color: #8e97fd !important;
+    margin-left: 5px;
+  }
+}
+
+.form {
+  margin-top: 12.5vw;
+
+  @media (min-width: 1000px) {
+    margin-top: 2vw;
+  }
+}

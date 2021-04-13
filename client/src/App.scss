@@ -1,0 +1,27 @@
+@import "utils/reset";
+@import "utils/fonts";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+a,
+a:visited,
+a:active {
+  color: #000;
+  transition: opacity 300ms ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+

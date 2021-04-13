@@ -1,0 +1,99 @@
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  margin-bottom: 1vw;
+  position: relative;
+
+  @media (min-width: 1000px) {
+    margin-bottom: 0.3vw;
+  }
+}
+
+.helper {
+  position: absolute;
+  top: 40%;
+  right: 5%;
+  transform: translate(-5%, -40%);
+
+  width: 5vw;
+  height: 2.1vw;
+  background: url("../../img/closed-eye.svg") center center no-repeat;
+  background-size: cover;
+
+  @media (min-width: 1000px) {
+    width: 1vw;
+    height: 0.5vw;
+
+    top: 35%;
+    transform: translate(-5%, -35%);
+  }
+
+  &_showed {
+    height: 4.1vw;
+    background: url("../../img/opened-eye.svg") center center no-repeat;
+    background-size: cover;
+  }
+}
+
+.error {
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  font-size: 3.8vw;
+  font-weight: 300;
+  color: red;
+
+  //visibility: hidden;
+  //opacity: 0;
+
+  transition: opacity 300ms ease;
+
+  @media (min-width: 1000px) {
+    font-size: 0.8vw;
+  }
+
+  &_show {
+    visibility: visible;
+    opacity: 1;
+
+    transition: opacity 300ms ease;
+  }
+}
+
+.input {
+  width: 89vw;
+  height: 15vw;
+  padding: 4.8vw;
+
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  font-size: 3.8vw;
+  font-weight: 300;
+  color: #3f414e;
+
+  background: #f2f3f7;
+  border-radius: 15px;
+
+  margin-bottom: 1vw;
+
+  &_error {
+    border: 1px solid red;
+  }
+
+  &::placeholder {
+    font-size: 3.8vw;
+
+    @media (min-width: 1000px) {
+      font-size: 0.8vw;
+    }
+  }
+
+  @media (min-width: 1000px) {
+    width: 18vw;
+    height: 3vw;
+
+    font-size: 0.8vw;
+
+    padding: 0 1.7vw;
+    margin-bottom: 0.3vw;
+  }
+}

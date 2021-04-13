@@ -1,0 +1,23 @@
+.button {
+  width: 90vw;
+  height: 15vw;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #8e97fd;
+  border-radius: 38px;
+
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  font-size: 4.5vw;
+  color: #fff !important;
+  font-weight: 500;
+  text-transform: uppercase;
+
+  @media (min-width: 1000px) {
+    width: 21vw;
+    height: 4.2vw;
+    font-size: 1.4vw;
+  }
+}

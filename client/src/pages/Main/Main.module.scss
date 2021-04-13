@@ -1,0 +1,52 @@
+.wrapper {
+  background: url("../../img/bg-mob.jpg") center center no-repeat;
+  background-size: cover;
+
+  @media (min-width: 1000px) {
+    background: #fff;
+  }
+}
+
+.heading {
+  margin: 95vw auto 3vw;
+
+  @media (min-width: 1000px) {
+    margin: 6.5vw auto 2.6vw;
+  }
+}
+
+.subHeading {
+  margin-bottom: 15vw;
+
+  @media (min-width: 1000px) {
+    margin-bottom: 5.7vw;
+  }
+}
+
+.button {
+  margin-bottom: 4.8vw;
+
+  @media (min-width: 1000px) {
+    margin-bottom: 1.2vw;
+  }
+}
+
+.helper {
+  font-size: 3.3vw;
+  font-weight: 400;
+  color: #a1a4b2;
+  display: flex;
+  align-items: center;
+  margin-bottom: 5vw;
+
+  @media (min-width: 1000px) {
+    font-size: 0.8vw;
+    margin-bottom: 1vw;
+  }
+
+  &Link {
+    display: inline-block;
+    color: #8e97fd !important;
+    margin-left: 5px;
+  }
+}

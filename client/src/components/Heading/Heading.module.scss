@@ -1,0 +1,16 @@
+.heading {
+  font-size: 7vw;
+  font-weight: bold;
+  color: #3f414e;
+  text-align: center;
+
+  @media (min-width: 1000px) {
+    font-size: 5.1vw;
+  }
+
+  &SignUp {
+    @media (min-width: 1000px) {
+      font-size: 3.1vw;
+    }
+  }
+}

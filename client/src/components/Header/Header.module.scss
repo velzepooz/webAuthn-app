@@ -1,0 +1,21 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+
+  padding: 3vw 4vw;
+
+  @media (min-width: 1000px) {
+    padding: 2vw 3vw;
+  }
+}
+
+.logo {
+  width: 20vw;
+  height: auto;
+
+  @media (min-width: 1000px) {
+    width: 5vw;
+  }
+}
