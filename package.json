@@ -1,0 +1,71 @@
+{
+  "name": "webAuth-app",
+  "homepage": ".",
+  "version": "0.1.0",
+  "private": true,
+  "keywords": [],
+  "author": "velzepooz",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@babel/plugin-proposal-private-methods": "^7.12.13",
+    "argon2": "^0.27.1",
+    "base64-arraybuffer": "^0.2.0",
+    "base64url": "^3.0.1",
+    "body-parser": "^1.19.0",
+    "bulma": "^0.8.0",
+    "concurrently": "^5.3.0",
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "express-handlebars": "^3.0.2",
+    "express-session": "^1.17.1",
+    "fido2-library": "^2.5.2",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.10.15",
+    "multer": "^1.4.2"
+  },
+  "devDependencies": {
+    "@mate-academy/eslint-config-react": "*",
+    "@mate-academy/stylelint-config": "*",
+    "eslint": "^6.8.0",
+    "jsonwebtoken": "^8.5.1",
+    "lint-staged": "^9.5.0",
+    "redux-devtools-extension": "^2.13.8",
+    "stylelint": "^13.0.0",
+    "nodemon": "^1.18.11"
+  },
+  "scripts": {
+    "build:react": "npm run build --prefix client",
+    "dev": "npm run build:react && nodemon index.js",
+    "start": "npm run build --prefix client && nodemon index.js"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "lint-staged": {
+    "*.css": [
+      "stylelint",
+      "git add"
+    ],
+    "*.js": [
+      "eslint",
+      "git add"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  }
+}

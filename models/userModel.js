@@ -1,6 +1,6 @@
 const { Schema, model } = require('mongoose');
 
-const user = new Schema({
+const userModel = new Schema({
   name: {
     type: String,
     required: true,
@@ -9,7 +9,11 @@ const user = new Schema({
     type: String,
     required: true,
   },
-  publicKey: Object,
+  webAuthnParams: {
+    counter: Number,
+    publicKey: String,
+    credId: String,
+  },
 });
 
-module.exports = model('User', user);
+module.exports = model('User', userModel);

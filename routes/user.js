@@ -3,153 +3,54 @@
 const { Router } = require('express');
 const multer = require('multer');
 const bodyParser = require('body-parser');
-const AuthHelpers = require('../helpers/authHelpers');
-const user = require('../models/user');
-const session = require('express-session');
+const SessionController = require('../controllers/sessionController');
+const WebAuthnController = require('../controllers/webAuthnController');
+const SessionService = require('../services/sessionService');
+const UserRepository = require('../repository/userRepository');
+const WebAuthnService = require('../services/webAuthnService');
+const userModel = require('../models/userModel');
+const fido2Options = require('../configs/fido2Options');
 
 const router = Router();
 const upload = multer();
+const userRepository = new UserRepository(userModel);
+const sessionService = new SessionService(userRepository);
+const webAuthnService = new WebAuthnService(userRepository, fido2Options);
+const sessionController = new SessionController(sessionService);
+const webAuthnController = new WebAuthnController(webAuthnService);
 
-router.post('/api/signUp', upload.any(), async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  const { name, password } = req.body;
-  const authHelper = new AuthHelpers();
+router.post(
+  '/signUp',
+  upload.any(),
+  sessionController.signUp.bind(sessionController),
+);
 
-  try {
-    const userData = await authHelper.signUp(name, password);
+router.post(
+  '/signIn',
+  upload.any(),
+  sessionController.signIn.bind(sessionController),
+);
 
-    if (userData) {
-      return res.json({
-        status: 'success', userData,
-      });
-    }
-  } catch (e) {
-    console.log(e);
+router.get(
+  '/getWebAuthnOptions',
+  webAuthnController.getWebAuthnOptions.bind(webAuthnController),
+);
 
-    return res.json({
-      status: 'error', message: e.message,
-    });
-  }
+router.post(
+  '/webAuthnRegister',
+  bodyParser.json(),
+  webAuthnController.webAuthnRegister.bind(webAuthnController),
+);
 
-  res.json({
-    status: 'error', message: `Can't create user`,
-  });
-});
+router.get(
+  '/webAuthnLogin',
+  webAuthnController.generateWebAuthnLoginOptions.bind(webAuthnController),
+);
 
-router.post('/api/signIn', upload.any(), async (req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  const token = req.headers.authorization;
-  const authHelper = new AuthHelpers();
-
-  try {
-    // Typeof token - string
-    if (token && token !== 'null') {
-      console.log('Login by token');
-      const userData = await authHelper.signInWithJwtToken(token);
-
-      if (userData) {
-        req.session.username = userData.name;
-
-        return res.json({
-          status: 'success',
-          userData,
-        });
-      }
-    }
-
-    const { name, password } = req.body || undefined;
-
-    if (name && password) {
-      console.log('Login by body');
-
-      const userData = await authHelper.signIn(name, password);
-
-      if (userData) {
-        return res.json({
-          status: 'success',
-          userData,
-        });
-      }
-    }
-  } catch (e) {
-    console.log(e);
-
-    return res.json({
-      status: 'error', message: e.message,
-    });
-  }
-
-  res.json({
-    status: 'error',
-    message: 'No user data',
-  });
-});
-
-router.post('/api/webAuthRequest', bodyParser.json(), async(req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  const token = req.headers.authorization;
-
-  try {
-    if (token && token !== 'null') {
-      const authHelper = new AuthHelpers();
-      const options = await authHelper.getWebAuthnOptions(
-        token,
-        req.body,
-      );
-
-      if (options) {
-        return res.json({
-          status: 'success',
-          options,
-        });
-      }
-    }
-  } catch (e) {
-    console.log(e);
-
-    return res.json({
-      status: 'error',
-      message: e.message,
-    });
-  }
-
-  return res.json({
-    status: 'error',
-    message: 'Not options from server',
-  });
-});
-
-router.post('/api/webAuthSave', bodyParser.json(), async(req, res) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  const token = req.headers.authorization;
-
-  try {
-    if (token && token !== 'null') {
-      const authHelper = new AuthHelpers();
-      const options = await authHelper.createUserPublicKey(
-        token,
-        req.body,
-      );
-
-      if (options) {
-        return res.json({
-          status: 'success', options,
-        });
-      }
-    }
-  } catch (e) {
-    console.log(e);
-
-    return res.json({
-      status: 'error',
-      message: e.message,
-    });
-  }
-
-  return res.json({
-    status: 'error',
-    message: 'Not options from server',
-  });
-});
+router.post(
+  '/webAuthnLogin',
+  bodyParser.json(),
+  webAuthnController.webAuthnLogin.bind(webAuthnController),
+);
 
 module.exports = router;

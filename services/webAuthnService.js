@@ -2,102 +2,256 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-underscore-dangle */
 const { Fido2Lib } = require('fido2-library');
-const base64url = require('base64url');
 const base64buffer = require('base64-arraybuffer');
-const User = require('../models/userModel');
 const JwtHandler = require('../utils/jwtHandler');
 
-class webAuthnService {
-  #jwtHandler = JwtHandler;
+class WebAuthnService {
+  #jwtHandler;
 
-  constructor(model) {
-    this.model = model;
+  #fido2Options;
+
+  constructor(userRepository, fido2Options, jwtHandler = JwtHandler) {
+    this.userRepository = userRepository;
+    this.#jwtHandler = jwtHandler;
+    this.#fido2Options = fido2Options;
+    this.f2lib = new Fido2Lib(this.#fido2Options);
   }
 
-  getWebAuthnOptions = async(token, optionsFromClient) => {
-    const user = this.#jwtHandler.decodeJwt(token).data || null;
-
-    const f2lib = new Fido2Lib({
-      rpName: optionsFromClient.rp.name,
-      rpId: optionsFromClient.rp.id,
-      pubKeyCredParams: [
+  async generateWebAuthnOptions(token) {
+    try {
+      const user = this.#jwtHandler.decodeJwt(token).data;
+      const options = await this.#prepareFidoRegistrationOptions(user);
+      const tokenWithChallenge = this.#jwtHandler.generateJwt(
         {
-          type: 'public-key',
-          alg: -7,
+          user,
+          challenge: options.challenge,
         },
-      ],
-      authenticatorAttachment: optionsFromClient
-        .authenticatorSelection.authenticatorAttachment,
-      userVerification: optionsFromClient
-        .authenticatorSelection.userVerification,
-      authenticatorRequireResidentKey: optionsFromClient
-        .authenticatorSelection.requireResidentKey,
-      challengeSize: 128,
-      attestation: 'none',
-      cryptoParams: [-7, -257],
-      timeout: 60000,
-    });
-
-    const options = await f2lib.attestationOptions();
-
-    options.user = {
-      name: user.name,
-      displayName: user.name,
-      id: base64url.encode(user._id),
-    };
-
-    options.challenge = base64url.encode(options.challenge);
-
-    return options;
-  };
-
-  createUserPublicKey = async(token, publicKey) => {
-    const user = this.#decodeJWT(token).data || null;
-
-    if (user) {
-      const f2lib = new Fido2Lib();
-      const attestationExpectations = {
-        challenge: publicKey.challenge,
-        origin: 'http://localhost:9000',
-        factor: 'either',
-      };
-
-      publicKey.convertedCredential.id = base64buffer
-        .decode(publicKey.convertedCredential.id);
-      publicKey.convertedCredential.rawId = base64buffer
-        .decode(publicKey.convertedCredential.rawId);
-
-      const registrationResult = await f2lib.attestationResult(
-        publicKey.convertedCredential,
-        attestationExpectations,
       );
 
-      const { authnrData } = registrationResult;
-      const credId = base64url.encode(authnrData.get('credId'));
-      const counter = authnrData.get('counter');
+      return {
+        options,
+        token: tokenWithChallenge,
+      };
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
 
-      await User.findByIdAndUpdate(user._id, {
-        publicKey: {
-          credId,
-          publicKey: authnrData.get('credentialPublicKeyPem'),
-          counter,
-        },
-      });
+      throw new Error('Failed to generate webAuthn options');
     }
   };
 
-  getAuthenticationOptions = async() => {
+  async registerWebAuthn(token, clientAttestationResponse) {
+    const tokenData = this.#getDataFromJwt(token);
+    const attestationExpectations = this
+      .#getAttestationOptions(tokenData.challenge);
+
+    this.#decodeClientAttestationResponseIdAndRawId(clientAttestationResponse);
+
+    const registrationResult = await this.#getRegistrationResult(
+      clientAttestationResponse,
+      attestationExpectations,
+    );
+
+    const webAuthnParams = this.#getWebAuthnParams(registrationResult);
+
+    await this.userRepository.update(tokenData.user.id, {
+      field: 'webAuthnParams',
+      value: webAuthnParams,
+    });
+
+    const tokenWithChallenge = this.#jwtHandler.generateJwt(
+      {
+        user: tokenData.user,
+      },
+    );
+
+    return {
+      token: tokenWithChallenge,
+    };
+  };
+
+  async getLoginOptions(token) {
     try {
-      const f2lib = new Fido2Lib();
-      const authnOptions = await f2lib.assertionOptions();
+      const tokenData = this.#jwtHandler.decodeJwt(token).data;
 
-      authnOptions.challenge = base64url.encode(authnOptions.challenge);
+      const authnOptions = await this.f2lib.assertionOptions();
+      const user = await this.userRepository.findById(tokenData.user.id);
+      const { webAuthnParams } = user;
 
-      return authnOptions;
+      authnOptions.challenge = base64buffer.encode(authnOptions.challenge);
+
+      authnOptions.allowCredentials = [
+        {
+          id: webAuthnParams.credId,
+          type: 'public-key',
+          transports: [
+            'internal'
+          ]
+        },
+      ];
+
+      const tokenWithChallenge = this.#jwtHandler.generateJwt(
+        {
+          user: {
+            id: user.id,
+            name: user.name,
+          },
+          challenge: authnOptions.challenge,
+        },
+      );
+
+      return {
+        token: tokenWithChallenge,
+        options: authnOptions,
+      };
     } catch (e) {
       throw e;
     }
   };
+
+  async signIn(token, clientAssertionResponse) {
+    const tokenData = this.#jwtHandler.decodeJwt(token).data;
+    console.log('clientAssertionResponse: ', clientAssertionResponse);
+    console.log('TokenData ', tokenData)
+
+    const { id } = tokenData.user;
+    const { challenge } = tokenData;
+
+    const user = await this.userRepository.findById(id);
+    const { webAuthnParams } = user;
+
+    if (!webAuthnParams) {
+      throw new Error('No webAuth credits');
+    }
+
+    clientAssertionResponse.rawId = base64buffer.decode(
+      clientAssertionResponse.rawId
+    );
+    clientAssertionResponse.response.authenticatorData = base64buffer.decode(
+      clientAssertionResponse.response.authenticatorData
+    );
+
+    const assertionExpectations = {
+      challenge: challenge,
+      origin: this.#fido2Options.origin,
+      factor: this.#fido2Options.factor,
+      publicKey: webAuthnParams.publicKey,
+      prevCounter: webAuthnParams.counter,
+      userHandle: webAuthnParams.credId,
+    };
+
+    const result = await this.f2lib.assertionResult(
+      clientAssertionResponse,
+      assertionExpectations,
+    );
+
+    if (result) {
+      await this.userRepository.update(id, {
+        field: 'webAuthnParams.counter',
+        value: result.authnrData.get('counter'),
+      });
+
+      const tokenWithChallenge = this.#jwtHandler.generateJwt(
+        {
+          user: {
+            id: user.id,
+            name: user.name,
+          },
+          challenge,
+        },
+      );
+
+      return {
+        token: tokenWithChallenge,
+        user: {
+          id: user.id,
+          name: user.name,
+        },
+      };
+    } else {
+      throw new Error('Authentication failed')
+    }
+  }
+
+  async #prepareFidoRegistrationOptions(user) {
+    try {
+      const options = await this.f2lib.attestationOptions();
+
+      options.user = {
+        name: user.name,
+        displayName: user.name,
+        id: base64buffer.encode(user._id),
+      };
+
+      options.challenge = base64buffer.encode(options.challenge);
+
+      return options;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+
+      throw new Error('Failed to prepare fido2Options');
+    }
+  }
+
+  #getDataFromJwt = (token) => {
+    try {
+      return this.#jwtHandler.decodeJwt(token).data;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+
+      throw new Error(e);
+    }
+  }
+
+  #getAttestationOptions = (challenge) => {
+    return {
+      challenge,
+      origin: 'http://localhost:3000',
+      factor: 'either',
+    };
+  }
+
+  #decodeClientAttestationResponseIdAndRawId = (clientAttestationResponse) => {
+    clientAttestationResponse.id = base64buffer
+      .decode(clientAttestationResponse.id);
+    clientAttestationResponse.rawId = base64buffer
+      .decode(clientAttestationResponse.rawId);
+  }
+
+  async #getRegistrationResult(
+    clientAttestationResponse,
+    attestationExpectations,
+  ) {
+    try {
+      const registrationResult = await this.f2lib.attestationResult(
+        clientAttestationResponse,
+        attestationExpectations,
+      );
+
+      return registrationResult;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(e);
+
+      throw new Error(e);
+    }
+  }
+
+  #getWebAuthnParams = (registrationResult) => {
+    const { authnrData } = registrationResult;
+
+    const credId = base64buffer.encode(authnrData.get('credId'));
+    const counter = authnrData.get('counter');
+    const publicKey = authnrData.get('credentialPublicKeyPem');
+
+    return {
+      credId,
+      counter,
+      publicKey,
+    };
+  }
 }
 
-module.exports = AuthService;
+module.exports = WebAuthnService;
